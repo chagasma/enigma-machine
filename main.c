@@ -20,6 +20,7 @@ const char notchIII = 'V';
 const char notchIV = 'J';
 const char notchV = 'Z';
 
+// nunca gira, inverte sinal em pares, garante a simetria
 const char reflectorB[] = "YRUHQSLDPXNGOKMIEBFZCWVJAT";
 const char reflectorC[] = "FVPJIAOYEDRZXWGCTKUQSBNMHL";
 
@@ -31,53 +32,54 @@ int letterToIndex(char letter) { return toupper(letter) - 'A'; }
 
 char indexToLetter(int idx) { return alphabet[idx % 26]; }
 
-void buildInverseWiring(const char *rotor, int *inverse)
-{
-  for (int i = 0; i < 26; i++)
-  {
+// ex: pos 0 == 'E' portanto inverse[4] = 0 | input: 'E' output: 'A'
+void buildInverseWiring(const char *rotor, int *inverse) {
+  for (int i = 0; i < 26; i++) {
     int output = letterToIndex(rotor[i]);
     inverse[output] = i;
   }
 }
 
-void rotateRotors()
-{
+void rotateRotors() {
+  // double stepping: quando o do meio e o da direita atingem o notch giram os 3
   int middleAtNotch = (alphabet[posRotorII] == notchII);
   int rightAtNotch = (alphabet[posRotorI] == notchI);
 
-  if (middleAtNotch)
-  {
+  if (middleAtNotch) {
     posRotorIII = (posRotorIII + 1) % 26;
     posRotorII = (posRotorII + 1) % 26;
-  }
-  else if (rightAtNotch)
-  {
+  } else if (rightAtNotch) {
     posRotorII = (posRotorII + 1) % 26;
   }
 
+  // rotação a cada step
   posRotorI = (posRotorI + 1) % 26;
 }
 
-int forward(int signal, const char *rotor, int position)
-{
+// fluxo indo - update na position para atualizar o posticionamento
+// ex: gira 3 vezes 'A' fica fisicamente aonde deveria estar 'D'
+// retorno da letra de saída
+int forward(int signal, const char *rotor, int position) {
   int entry = (signal + position + 26) % 26;
   int encoded = letterToIndex(rotor[entry]);
   return (encoded - position + 26) % 26;
 }
 
-int backward(int signal, const int *inverseRotor, int position)
-{
+// basicamente o mesmo fluxo só que reverso
+int backward(int signal, const int *inverseRotor, int position) {
   int entry = (signal + position + 26) % 26;
   int encoded = inverseRotor[entry];
   return (encoded - position + 26) % 26;
 }
 
-char encodeCharacter(char letter)
-{
+char encodeCharacter(char letter) {
+  // gira
   rotateRotors();
 
+  // codifica
   int signal = letterToIndex(letter);
 
+  // sinal atravessa os rotores direta pra esquerda
   signal = forward(signal, rotorIII, posRotorI);
   signal = forward(signal, rotorII, posRotorII);
   signal = forward(signal, rotorI, posRotorIII);
@@ -91,8 +93,7 @@ char encodeCharacter(char letter)
   return indexToLetter(signal);
 }
 
-int main()
-{
+int main() {
   buildInverseWiring(rotorI, rotorIInverse);
   buildInverseWiring(rotorII, rotorIIInverse);
   buildInverseWiring(rotorIII, rotorIIIInverse);
@@ -102,21 +103,16 @@ int main()
   printf("Enigma Machine\n");
   printf("Enter text: ");
 
-  if (fgets(input, sizeof(input), stdin) == NULL)
-  {
+  if (fgets(input, sizeof(input), stdin) == NULL) {
     return 1;
   }
 
   printf("Output: ");
 
-  for (int i = 0; input[i] != '\0'; i++)
-  {
-    if (isalpha(input[i]))
-    {
+  for (int i = 0; input[i] != '\0'; i++) {
+    if (isalpha(input[i])) {
       printf("%c", encodeCharacter(input[i]));
-    }
-    else
-    {
+    } else {
       printf("%c", input[i]);
     }
   }
